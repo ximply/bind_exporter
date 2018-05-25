@@ -20,6 +20,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 	"github.com/prometheus/common/version"
+	"net"
 )
 
 const (
@@ -440,7 +441,7 @@ func main() {
 		bindPidFile   = flag.String("bind.pid-file", "", "Path to Bind's pid file to export process information.")
 		bindVersion   = flag.String("bind.stats-version", "auto", "BIND statistics version. Can be detected automatically. Available: [xml.v2, xml.v3, auto]")
 		showVersion   = flag.Bool("version", false, "Print version information.")
-		listenAddress = flag.String("web.listen-address", ":9119", "Address to listen on for web interface and telemetry.")
+		listenAddress = flag.String("unix-sock", "/dev/shm/bind_exporter", "Address to listen on for unix sock access.")
 		metricsPath   = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
 
 		groups = statisticGroups{bind.ServerStats, bind.ViewStats}
@@ -476,9 +477,9 @@ func main() {
 		prometheus.MustRegister(procExporter)
 	}
 
-	log.Info("Starting Server: ", *listenAddress)
-	http.Handle(*metricsPath, prometheus.Handler())
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.Handle(*metricsPath, prometheus.Handler())
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
              <head><title>Bind Exporter</title></head>
              <body>
@@ -487,5 +488,14 @@ func main() {
              </body>
              </html>`))
 	})
-	log.Fatal(http.ListenAndServe(*listenAddress, nil))
+	server := http.Server{
+		Handler: mux, // http.DefaultServeMux,
+	}
+	os.Remove(*listenAddress)
+
+	listener, err := net.Listen("unix", *listenAddress)
+	if err != nil {
+		panic(err)
+	}
+	server.Serve(listener)
 }
