@@ -441,7 +441,7 @@ func main() {
 		bindPidFile   = flag.String("bind.pid-file", "", "Path to Bind's pid file to export process information.")
 		bindVersion   = flag.String("bind.stats-version", "auto", "BIND statistics version. Can be detected automatically. Available: [xml.v2, xml.v3, auto]")
 		showVersion   = flag.Bool("version", false, "Print version information.")
-		listenAddress = flag.String("unix-sock", "/dev/shm/bind_exporter", "Address to listen on for unix sock access.")
+		listenAddress = flag.String("unix-sock", "/dev/shm/bind_exporter.sock", "Address to listen on for unix sock access.")
 		metricsPath   = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
 
 		groups = statisticGroups{bind.ServerStats, bind.ViewStats}
